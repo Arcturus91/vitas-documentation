@@ -1,4 +1,4 @@
-```mermaid
+
 sequenceDiagram
     participant Patient as Patient<br/>(WhatsApp)
     participant Twilio as Twilio<br/>WhatsApp API
@@ -60,4 +60,3 @@ sequenceDiagram
     Twilio->>Patient: "Cita reservada. Paga aquí: [link]"
 
     Note over Sessions: Session expires after<br/>15 min idle OR 1 hour absolute
-```
