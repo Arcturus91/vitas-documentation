@@ -1,0 +1,124 @@
+```mermaid
+erDiagram
+    DOCTORS ||--o{ PATIENTDOCTORS : "treats"
+    PATIENTS ||--o{ PATIENTDOCTORS : "treated_by"
+    DOCTORS ||--o{ APPOINTMENTS_TABLE : "performs"
+    PATIENTS ||--o{ APPOINTMENTS_TABLE : "has"
+    APPOINTMENTS_TABLE ||--|| DIAGNOSIS : "includes"
+    DOCTORS ||--o{ VITAS_APPOINTMENT : "schedules"
+    PATIENTS ||--o{ VITAS_APPOINTMENT : "books"
+    DOCTORS ||--|| VITAS_SCHEDULE_CONFIG : "configures"
+    PATIENTS ||--o{ VITAS_OTP : "requests"
+    PATIENTS ||--o{ WA_SESSIONS : "chats_with"
+
+    DOCTORS {
+        string doctor_id PK
+        string email UK "email-index"
+        string password
+        string full_name
+        string speciality
+        string id_number
+        string phone_number
+        string profile_picture_url
+        boolean active_for_ai_booking "active-index"
+        string created_at
+    }
+
+    PATIENTS {
+        string patient_id PK
+        string phone_number SK "phone_number-index"
+        string patient_name
+        string patient_email
+        number patient_age
+        string patient_dni
+        string status
+        boolean chatbot_access
+        string last_login
+        string created_at
+    }
+
+    PATIENTDOCTORS {
+        string doctor_id PK
+        string patient_id SK "patient_id-index"
+        string relationship_type
+        string created_at
+        string notes
+    }
+
+    APPOINTMENTS_TABLE {
+        string patient_id PK
+        string appointment_id SK "appointment_id-index"
+        string doctor_id "doctor_id-index, doctor_id-created_at-index"
+        string appointment_date
+        string appointment_time
+        string status
+        boolean paid
+        string payment_id
+        string audio_s3_key
+        string transcription_text
+        string soap_subjective
+        string soap_objective
+        string soap_assessment
+        string soap_plan
+        string created_at
+    }
+
+    DIAGNOSIS {
+        string appointment_id PK
+        string patient_id SK
+        string doctor_id
+        json diagnoses "Array of ICD codes"
+        string diagnosis_service
+        string created_at
+    }
+
+    VITAS_APPOINTMENT {
+        string doctor_id PK
+        string appt SK "APPT# or LOCK#"
+        string appointment_id "appointment_id-index"
+        string patient_id
+        string appointment_date
+        string appointment_time
+        string status
+        boolean paid
+        number payment_amount
+        string payment_currency
+        string reason
+        string created_via
+        string created_at
+        number ttl "TTL for unpaid"
+    }
+
+    VITAS_SCHEDULE_CONFIG {
+        string doctor_id PK
+        string config SK "Fixed: CONFIG"
+        json monday "Slot array"
+        json tuesday
+        json wednesday
+        json thursday
+        json friday
+        json saturday
+        json sunday
+        string timezone
+        string updated_at
+    }
+
+    VITAS_OTP {
+        string phoneNumber PK
+        string otpCode
+        number expiresAt "TTL: 5 min"
+        string context "chatbot or payment"
+        number attempts
+        string createdAt
+    }
+
+    WA_SESSIONS {
+        string pk PK "whatsapp:+51..."
+        string threadId "LangGraph thread"
+        string jwt "2-hour token"
+        string patientId
+        number expiresAt "TTL: 15 min idle"
+        number absoluteExpiry "1 hour max"
+        number lastActiveAt
+    }
+```

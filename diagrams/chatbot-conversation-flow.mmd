@@ -1,0 +1,63 @@
+```mermaid
+sequenceDiagram
+    participant Patient as Patient<br/>(WhatsApp)
+    participant Twilio as Twilio<br/>WhatsApp API
+    participant ChatLambda as Chat Integration<br/>Lambda
+    participant Sessions as wa_sessions<br/>DynamoDB
+    participant LangGraph as LangGraph<br/>Cloud
+    participant Agent as Patient Agent<br/>(ReAct)
+    participant DB as DynamoDB<br/>Tables
+    participant AgentWebhook as Agent Webhook<br/>Lambda
+
+    Patient->>Twilio: Send WhatsApp Message<br/>"Quiero agendar una cita"
+    Twilio->>ChatLambda: POST /chat-webhook<br/>(X-Twilio-Signature)
+
+    ChatLambda->>ChatLambda: Validate Twilio Signature
+    ChatLambda->>Sessions: Load/Create Session<br/>(threadId, JWT, patientId)
+    Sessions-->>ChatLambda: Session Data
+
+    ChatLambda->>ChatLambda: Check JWT Expiry<br/>(Rotate if < 5 min)
+    ChatLambda->>Sessions: Update Session<br/>(Renew 15min TTL)
+
+    ChatLambda->>LangGraph: POST /threads/{threadId}/runs<br/>Authorization: Bearer JWT<br/>{"messages": [{"role": "user", "content": "..."}]}
+
+    ChatLambda-->>Twilio: Return Empty TwiML<br/>(200 OK, async processing)
+
+    LangGraph->>LangGraph: Authenticate JWT
+    LangGraph->>LangGraph: Load Thread Context
+    LangGraph->>Agent: Execute StateGraph<br/>role_condition → patient_agent
+
+    Agent->>Agent: Reasoning:<br/>"User wants to book appointment"
+    Agent->>DB: Tool Call: get_available_doctors()<br/>Query Doctors_Table_V2
+    DB-->>Agent: List of doctors
+
+    Agent->>Agent: Reasoning:<br/>"Show doctors, ask for selection"
+    Agent->>LangGraph: Generate Response
+
+    LangGraph->>AgentWebhook: POST /agent-webhook?from=whatsapp:+51...<br/>{"messages": [...], "thread_id": "..."}
+
+    AgentWebhook->>AgentWebhook: Extract AI Message
+    AgentWebhook->>AgentWebhook: Convert Markdown to WhatsApp<br/>**bold** → *bold*
+
+    AgentWebhook->>Twilio: Send WhatsApp Message<br/>(Twilio Client API)
+    Twilio->>Patient: Deliver WhatsApp Message<br/>"Estos son los doctores disponibles..."
+
+    Patient->>Twilio: Reply: "Doctor Juan Pérez"
+    Twilio->>ChatLambda: POST /chat-webhook
+
+    Note over ChatLambda,LangGraph: Conversation continues...<br/>Same flow repeats
+
+    ChatLambda->>LangGraph: Continue Thread<br/>New message added
+    Agent->>DB: Tool Call: find_free_slots_for_doctor()
+    DB-->>Agent: Available slots
+
+    Agent->>DB: Tool Call: schedule_patient_appointment()
+    DB-->>Agent: Appointment created (pending payment)
+
+    Agent->>LangGraph: Response with payment link
+    LangGraph->>AgentWebhook: Callback
+    AgentWebhook->>Twilio: Send payment link
+    Twilio->>Patient: "Cita reservada. Paga aquí: [link]"
+
+    Note over Sessions: Session expires after<br/>15 min idle OR 1 hour absolute
+```

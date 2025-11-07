@@ -1,0 +1,67 @@
+```mermaid
+flowchart TD
+    Start([Patient Visits Portal]) --> EnterPhone[Enter Phone Number]
+    EnterPhone --> SendOTP[POST /otp/send<br/>phoneNumber, patientName]
+
+    SendOTP --> GenerateOTP[Generate 6-digit OTP]
+    GenerateOTP --> StoreOTP[(Store in vitas-otp<br/>TTL: 5 minutes)]
+    GenerateOTP --> SendWhatsApp[Send via Twilio<br/>WhatsApp API]
+
+    SendWhatsApp --> PatientReceives[Patient Receives<br/>WhatsApp OTP]
+    PatientReceives --> EnterOTP[Enter OTP Code]
+
+    EnterOTP --> VerifyOTP[POST /otp/verify<br/>phoneNumber, otpCode]
+    VerifyOTP --> ValidateOTP{OTP Valid?}
+
+    ValidateOTP -->|Invalid| ErrorOTP[Show Error<br/>Try Again]
+    ErrorOTP --> EnterOTP
+
+    ValidateOTP -->|Valid| CreatePatient[Create/Retrieve Patient<br/>Patients_Table_V2]
+    CreatePatient --> GenerateJWT[Generate JWT<br/>24-hour expiry]
+    GenerateJWT --> SetCookie[Set HTTP-only Cookie]
+
+    SetCookie --> SelectDoctor[Browse Available Doctors<br/>GET /doctors?active=true]
+    SelectDoctor --> DoctorChoice{Doctor Selected}
+
+    DoctorChoice --> SelectDate[Select Date]
+    SelectDate --> GetSlots[GET /appointments/slots<br/>doctorId, date]
+
+    GetSlots --> ShowSlots[Display Available Times]
+    ShowSlots --> SelectSlot[Patient Selects Slot]
+
+    SelectSlot --> BookAppointment[POST /appointments/book<br/>Authorization: Bearer JWT]
+    BookAppointment --> CreateTemp[(Create Temp Appointment<br/>Vitas_Appointment<br/>status: pending, TTL: 15 min)]
+
+    CreateTemp --> GeneratePayment[Create MercadoPago<br/>Payment Link]
+    GeneratePayment --> RedirectPayment[Redirect to<br/>MercadoPago]
+
+    RedirectPayment --> PatientPays{Patient Completes<br/>Payment?}
+
+    PatientPays -->|Abandons| Timeout[Appointment Expires<br/>TTL deletes record]
+    Timeout --> End1([End - Slot Released])
+
+    PatientPays -->|Completes| MPWebhook[MercadoPago Webhook<br/>POST /confirm-pay]
+    MPWebhook --> VerifyPayment[Query MercadoPago API<br/>GET /v1/payments/{id}]
+
+    VerifyPayment --> PaymentStatus{Payment Status}
+
+    PaymentStatus -->|Approved| UpdateAppt[Update Appointment<br/>status: confirmed<br/>paid: true<br/>Remove TTL]
+    UpdateAppt --> CreateRelationship[(Create PatientDoctors<br/>Junction Record)]
+    UpdateAppt --> LockSlot[(Create LOCK Record<br/>Prevent double-booking)]
+
+    CreateRelationship --> SendConfirmation[Send WhatsApp<br/>Confirmation]
+    SendConfirmation --> Success([Booking Complete])
+
+    PaymentStatus -->|Rejected| PaymentFailed[Update status: cancelled]
+    PaymentFailed --> NotifyFailure[Send Failure Message]
+    NotifyFailure --> End2([End - Payment Failed])
+
+    PaymentStatus -->|Pending| WaitPayment[Wait for Confirmation]
+    WaitPayment --> MPWebhook
+
+    style Start fill:#4A90E2
+    style Success fill:#50C878
+    style ErrorOTP fill:#FF6B6B
+    style Timeout fill:#FFA500
+    style PaymentFailed fill:#FF6B6B
+```

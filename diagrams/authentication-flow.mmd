@@ -1,0 +1,82 @@
+```mermaid
+flowchart TB
+    subgraph "Doctor Authentication (24h JWT)"
+        DoctorLogin[Doctor Login Page] --> SubmitCreds[Submit Email + Password]
+        SubmitCreds --> ProxyAuth[POST /api/signin<br/>Next.js API Route]
+        ProxyAuth --> AWSAuth[POST /auth/signin<br/>AWS API Gateway]
+
+        AWSAuth --> AuthLambda[VitasAuthFunction<br/>Lambda]
+        AuthLambda --> QueryDoctor[(Query Doctors_Table_V2<br/>via email-index)]
+        QueryDoctor --> ValidatePwd{Valid<br/>Credentials?}
+
+        ValidatePwd -->|No| ErrorDoctor[Return 401<br/>Invalid Credentials]
+        ErrorDoctor --> DoctorLogin
+
+        ValidatePwd -->|Yes| GenDoctorJWT[Generate JWT<br/>HS256, 24h expiry]
+        GenDoctorJWT --> SetDoctorCookie[Set HTTP-only Cookie<br/>authToken]
+        SetDoctorCookie --> DoctorDashboard[Redirect to Dashboard]
+    end
+
+    subgraph "Patient OTP Authentication (24h JWT)"
+        PatientPortal[Patient Portal] --> EnterPhone[Enter Phone Number]
+        EnterPhone --> SendOTP[POST /otp/send]
+
+        SendOTP --> GenOTP[Generate 6-digit OTP]
+        GenOTP --> StoreOTP[(Store vitas-otp<br/>TTL: 5 min)]
+        GenOTP --> SendSMS[Send via Twilio<br/>WhatsApp]
+
+        SendSMS --> ReceiveOTP[Patient Receives OTP]
+        ReceiveOTP --> SubmitOTP[Enter OTP Code]
+
+        SubmitOTP --> VerifyOTP[POST /otp/verify]
+        VerifyOTP --> ValidateOTP{Valid OTP?}
+
+        ValidateOTP -->|No| ErrorPatient[Return 400<br/>Invalid OTP]
+        ErrorPatient --> SubmitOTP
+
+        ValidateOTP -->|Yes| CreatePatient[Create/Get Patient<br/>Patients_Table_V2]
+        CreatePatient --> GenPatientJWT[Generate JWT<br/>HS256, 24h expiry]
+        GenPatientJWT --> SetPatientCookie[Set HTTP-only Cookie]
+        SetPatientCookie --> BookingFlow[Redirect to Booking]
+    end
+
+    subgraph "Chatbot Authentication (2h JWT)"
+        WhatsAppMsg[WhatsApp Message] --> ChatWebhook[POST /chat-webhook<br/>Twilio Signature]
+        ChatWebhook --> LoadSession[(Load wa_sessions)]
+
+        LoadSession --> SessionExists{Session<br/>Exists?}
+        SessionExists -->|No| CreateSession[Create New Session<br/>Generate 2h JWT]
+        SessionExists -->|Yes| CheckExpiry{JWT Valid?}
+
+        CheckExpiry -->|Expired| RotateJWT[Rotate JWT<br/>New 2h Token]
+        CheckExpiry -->|< 5 min| RotateJWT
+        CheckExpiry -->|Valid| UseExisting[Use Existing JWT]
+
+        CreateSession --> StoreSession[(Store wa_sessions<br/>15 min idle TTL)]
+        RotateJWT --> StoreSession
+        UseExisting --> StoreSession
+
+        StoreSession --> CallLangGraph[Call LangGraph<br/>Authorization: Bearer JWT]
+    end
+
+    subgraph "JWT Validation (All Protected Routes)"
+        APIRequest[API Request] --> ExtractToken[Extract JWT<br/>from Cookie/Header]
+        ExtractToken --> VerifyJWT{JWT Valid?}
+
+        VerifyJWT -->|No| Return401[Return 401<br/>Unauthorized]
+        VerifyJWT -->|Expired| Return401
+        VerifyJWT -->|Valid| CheckRole{Correct Role?}
+
+        CheckRole -->|No| Return403[Return 403<br/>Forbidden]
+        CheckRole -->|Yes| AllowAccess[Allow Access]
+    end
+
+    style DoctorDashboard fill:#50C878
+    style BookingFlow fill:#50C878
+    style CallLangGraph fill:#50C878
+    style AllowAccess fill:#50C878
+    style ErrorDoctor fill:#FF6B6B
+    style ErrorPatient fill:#FF6B6B
+    style Return401 fill:#FF6B6B
+    style Return403 fill:#FF6B6B
+```

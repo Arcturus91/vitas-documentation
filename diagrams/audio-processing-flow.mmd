@@ -1,0 +1,70 @@
+```mermaid
+flowchart TD
+    Start([Doctor Records Audio]) --> Record[MediaRecorder API<br/>Capture Audio]
+    Record --> Convert[Convert to MP3<br/>lamejs library]
+    Convert --> GetURL[GET Presigned URL<br/>/api/audio-to-s3-presigned-url]
+
+    GetURL --> Upload[PUT Audio to S3<br/>Direct Upload]
+    Upload --> S3[(S3: vitas-media-processing<br/>audios/doctor-id/patient-id/appointment-id.mp3)]
+
+    S3 -->|ObjectCreated Event| Trigger[Workflow Trigger Lambda]
+    Trigger --> StartSF[Start Transcription<br/>Step Functions]
+
+    StartSF --> Try1[Transcription Lambda<br/>Attempt 1]
+    Try1 -->|Success| SaveTranscript[Save to S3<br/>transcripts/*.json]
+    Try1 -->|Failure| Wait1[Wait 30 seconds]
+
+    Wait1 --> Try2[Transcription Lambda<br/>Attempt 2]
+    Try2 -->|Success| SaveTranscript
+    Try2 -->|Failure| Wait2[Wait 60 seconds]
+
+    Wait2 --> Try3[Transcription Lambda<br/>Attempt 3]
+    Try3 -->|Success| SaveTranscript
+    Try3 -->|Failure| Wait3[Wait 120 seconds]
+
+    Wait3 --> Try4[Transcription Lambda<br/>Attempt 4 - Final]
+    Try4 -->|Success| SaveTranscript
+    Try4 -->|Failure| FailFlow[Failure Flow]
+
+    FailFlow --> DLQ[(Send to DLQ<br/>SqsSendMessage)]
+    FailFlow --> NotifyFail[Failure Notification Lambda]
+    NotifyFail --> WebhookFail[POST /api/processing-webhook<br/>type: failure, retryScheduled: true]
+    WebhookFail --> FrontendError[Show Error Snackbar<br/>"Reintentaremos en 2 horas"]
+
+    SaveTranscript --> StartAnalysis[Start Analysis Workflow<br/>Express Step Functions]
+
+    StartAnalysis --> Parallel{Parallel Execution}
+
+    Parallel -->|Branch 1| SOAP[SOAP Report Lambda<br/>OpenAI GPT-4o]
+    Parallel -->|Branch 2| ICD[ICD Diagnosis Lambda<br/>OpenAI GPT-4o]
+
+    SOAP -->|Success| SaveSOAP[(Update Appointments_Table_V2<br/>SOAP fields)]
+    SOAP -->|Failure| SOAPFallback[Fallback Anthropic Claude]
+    SOAPFallback --> SaveSOAP
+
+    ICD -->|Success| SaveICD[(Insert Diagnosis_Table_V2<br/>ICD codes)]
+    ICD -->|Failure| ICDFallback[Fallback Anthropic Claude]
+    ICDFallback --> SaveICD
+
+    SaveSOAP --> Join[Join Results]
+    SaveICD --> Join
+
+    Join --> SuccessNotif[Success Notification Lambda]
+    SuccessNotif --> WebhookSuccess[POST /api/processing-webhook<br/>type: success]
+    WebhookSuccess --> FrontendSuccess[Show Success Snackbar<br/>"Procesamiento completado"]
+    FrontendSuccess --> Invalidate[Invalidate Cache<br/>Refresh Appointments]
+
+    DLQ --> EventBridge[EventBridge Rule<br/>Every 2 hours]
+    EventBridge --> DLQProcessor[DLQ Processor Lambda]
+    DLQProcessor -->|Message < 24h| Retry[Retry Step Functions]
+    DLQProcessor -->|Message >= 24h| SLAViolation[SLA Violation<br/>Final Failure]
+
+    Retry --> StartSF
+
+    style Start fill:#4A90E2
+    style FailFlow fill:#FF6B6B
+    style DLQ fill:#FFA500
+    style SaveSOAP fill:#50C878
+    style SaveICD fill:#50C878
+    style FrontendSuccess fill:#50C878
+```

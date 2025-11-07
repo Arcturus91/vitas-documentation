@@ -1,0 +1,99 @@
+```mermaid
+graph TB
+    subgraph "Frontend Applications"
+        DoctorWeb["Doctor Dashboard<br/>(vitas-client)<br/>Next.js 14"]
+        PatientWeb["Patient Portal<br/>(vitas-patients-front)<br/>Next.js 14"]
+        WhatsApp["WhatsApp<br/>Business"]
+    end
+
+    subgraph "API Layer"
+        MainAPI["Main API Gateway<br/>/auth/*, /doctors/*"]
+        OtpAPI["Auth-OTP API<br/>/otp/*, /chatbot/*"]
+        NextAPI["Next.js API Routes<br/>/api/*"]
+    end
+
+    subgraph "AWS Lambda Functions"
+        AuthLambda["Auth Lambda<br/>(vitas-main-stack)"]
+        TranscriptionLambda["Transcription Lambda"]
+        SOAPLambda["SOAP Report Lambda"]
+        ICDLambda["ICD Diagnosis Lambda"]
+        ChatLambda["Chat Integration Lambda"]
+        DLQLambda["DLQ Processor Lambda"]
+    end
+
+    subgraph "LangGraph AI"
+        LangGraph["LangGraph Cloud<br/>Doctor & Patient Agents"]
+    end
+
+    subgraph "Step Functions"
+        TranscriptionSF["Transcription Workflow<br/>(Standard)"]
+        AnalysisSF["Analysis Workflow<br/>(Express)"]
+    end
+
+    subgraph "AWS Storage"
+        S3Media["S3: Media Processing<br/>audios/, transcripts/"]
+        S3Profile["S3: Profile Pictures"]
+        DynamoDB[("DynamoDB<br/>12 Tables")]
+    end
+
+    subgraph "Queuing & Scheduling"
+        DLQ["3x Dead Letter Queues<br/>(14-day retention)"]
+        EventBridge["EventBridge Rule<br/>(Every 2 hours)"]
+    end
+
+    subgraph "External Services"
+        OpenAI["OpenAI<br/>Whisper + GPT-4o"]
+        Anthropic["Anthropic<br/>Claude 3 Sonnet"]
+        Twilio["Twilio<br/>WhatsApp API"]
+        MercadoPago["MercadoPago<br/>Payments"]
+    end
+
+    DoctorWeb -->|HTTPS| NextAPI
+    PatientWeb -->|HTTPS| NextAPI
+    WhatsApp -->|Webhook| OtpAPI
+
+    NextAPI -->|Proxy| MainAPI
+    NextAPI -->|Proxy| LangGraph
+    NextAPI -->|Direct| DynamoDB
+
+    MainAPI --> AuthLambda
+    OtpAPI --> ChatLambda
+
+    DoctorWeb -->|Presigned URL| S3Media
+    S3Media -->|Event| TranscriptionSF
+
+    TranscriptionSF --> TranscriptionLambda
+    TranscriptionSF -->|Success| AnalysisSF
+
+    AnalysisSF --> SOAPLambda
+    AnalysisSF --> ICDLambda
+
+    TranscriptionLambda -->|On Failure| DLQ
+    SOAPLambda -->|On Failure| DLQ
+    ICDLambda -->|On Failure| DLQ
+
+    EventBridge -->|Trigger| DLQLambda
+    DLQLambda -->|Retry| TranscriptionSF
+
+    ChatLambda --> LangGraph
+    LangGraph -->|Query| DynamoDB
+
+    TranscriptionLambda --> OpenAI
+    TranscriptionLambda -.->|Fallback| Anthropic
+    SOAPLambda --> OpenAI
+    SOAPLambda -.->|Fallback| Anthropic
+
+    AuthLambda --> DynamoDB
+    SOAPLambda --> DynamoDB
+    ICDLambda --> DynamoDB
+
+    ChatLambda --> Twilio
+    OtpAPI --> MercadoPago
+
+    style DoctorWeb fill:#4A90E2
+    style PatientWeb fill:#4A90E2
+    style LangGraph fill:#50C878
+    style DynamoDB fill:#FF6B6B
+    style OpenAI fill:#10A37F
+    style Anthropic fill:#D4A574
+```
