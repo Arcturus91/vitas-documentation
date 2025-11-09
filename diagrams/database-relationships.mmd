@@ -13,20 +13,20 @@ erDiagram
 
     DOCTORS {
         string doctor_id PK
-        string email UK "email-index"
+        string email UK
         string password
         string full_name
         string speciality
         string id_number
         string phone_number
         string profile_picture_url
-        boolean active_for_ai_booking "active-index"
+        boolean active_for_ai_booking
         string created_at
     }
 
     PATIENTS {
         string patient_id PK
-        string phone_number SK "phone_number-index"
+        string phone_number
         string patient_name
         string patient_email
         number patient_age
@@ -39,7 +39,7 @@ erDiagram
 
     PATIENTDOCTORS {
         string doctor_id PK
-        string patient_id SK "patient_id-index"
+        string patient_id
         string relationship_type
         string created_at
         string notes
@@ -47,8 +47,8 @@ erDiagram
 
     APPOINTMENTS_TABLE {
         string patient_id PK
-        string appointment_id SK "appointment_id-index"
-        string doctor_id "doctor_id-index, doctor_id-created_at-index"
+        string appointment_id
+        string doctor_id
         string appointment_date
         string appointment_time
         string status
@@ -65,17 +65,17 @@ erDiagram
 
     DIAGNOSIS {
         string appointment_id PK
-        string patient_id SK
+        string patient_id
         string doctor_id
-        json diagnoses "Array of ICD codes"
+        json diagnoses
         string diagnosis_service
         string created_at
     }
 
     VITAS_APPOINTMENT {
         string doctor_id PK
-        string appt SK "APPT# or LOCK#"
-        string appointment_id "appointment_id-index"
+        string appt
+        string appointment_id
         string patient_id
         string appointment_date
         string appointment_time
@@ -86,13 +86,13 @@ erDiagram
         string reason
         string created_via
         string created_at
-        number ttl "TTL for unpaid"
+        number ttl
     }
 
     VITAS_SCHEDULE_CONFIG {
         string doctor_id PK
-        string config SK "Fixed: CONFIG"
-        json monday "Slot array"
+        string config
+        json monday
         json tuesday
         json wednesday
         json thursday
@@ -106,19 +106,19 @@ erDiagram
     VITAS_OTP {
         string phoneNumber PK
         string otpCode
-        number expiresAt "TTL: 5 min"
-        string context "chatbot or payment"
+        number expiresAt
+        string context
         number attempts
         string createdAt
     }
 
     WA_SESSIONS {
-        string pk PK "whatsapp:+51..."
-        string threadId "LangGraph thread"
-        string jwt "2-hour token"
+        string session_id PK
+        string threadId
+        string jwt
         string patientId
-        number expiresAt "TTL: 15 min idle"
-        number absoluteExpiry "1 hour max"
+        number expiresAt
+        number absoluteExpiry
         number lastActiveAt
     }
 
