@@ -28,7 +28,7 @@ flowchart TD
     FailFlow --> DLQ[(Send to DLQ<br/>SqsSendMessage)]
     FailFlow --> NotifyFail[Failure Notification Lambda]
     NotifyFail --> WebhookFail[POST /api/processing-webhook<br/>type: failure, retryScheduled: true]
-    WebhookFail --> FrontendError[Show Error Snackbar<br/>"Reintentaremos en 2 horas"]
+    WebhookFail --> FrontendError[Show Error Snackbar<br/>&quot;Reintentaremos en 2 horas&quot;]
 
     SaveTranscript --> StartAnalysis[Start Analysis Workflow<br/>Express Step Functions]
 
@@ -50,7 +50,7 @@ flowchart TD
 
     Join --> SuccessNotif[Success Notification Lambda]
     SuccessNotif --> WebhookSuccess[POST /api/processing-webhook<br/>type: success]
-    WebhookSuccess --> FrontendSuccess[Show Success Snackbar<br/>"Procesamiento completado"]
+    WebhookSuccess --> FrontendSuccess[Show Success Snackbar<br/>&quot;Procesamiento completado&quot;]
     FrontendSuccess --> Invalidate[Invalidate Cache<br/>Refresh Appointments]
 
     DLQ --> EventBridge[EventBridge Rule<br/>Every 2 hours]
