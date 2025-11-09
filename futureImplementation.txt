@@ -1,0 +1,776 @@
+Looking at the implementation summary you provided, I can see it focuses on the authentication, user management, and clinic configuration modules. Let me analyze this against the comprehensive PDF documentation and create an updated
+   functionality list.
+
+  📋 UPDATED FUNCTIONALITIES TO IMPLEMENT
+
+  Based on the technical summary and the complete documentation, here are the functionalities organized by implementation phase:
+
+  ---
+  🎯 PHASE 1 - MVP (Immediate Implementation)
+
+  1️⃣ AUTHENTICATION & ACCOUNT REGISTRATION
+
+  Owner Account Creation
+
+  - ✅ Register account with email/password
+  - ✅ Email verification with 24h token
+  - ✅ Optional MFA (OTP via email or WhatsApp)
+  - ✅ Accept Terms & Conditions (simple electronic signature with IP stamp)
+  - ✅ Create Tenant (clinic/IPRESS) linked to owner
+  - ✅ Account states: Draft → Incomplete → Active → Suspended → Closed
+  - ✅ Audit every state change (audit_logs with user, IP, timestamp)
+
+  Doctor Authentication
+
+  - ✅ 24-hour JWT for doctor login (email + password)
+  - ✅ Argon2id password encryption
+  - ✅ Session management with HTTP-only cookies
+
+  Patient Authentication
+
+  - ✅ OTP via WhatsApp (6-digit, 5-min TTL)
+  - ✅ 24-hour JWT for payment flow
+  - ✅ Create/retrieve patient in Patients_Table_V2
+
+  Chatbot Authentication
+
+  - ✅ 2-hour JWT for AI assistant sessions
+  - ✅ Automatic JWT rotation (when expired or <5 min remaining)
+  - ✅ Session storage in wa_sessions (15-min idle TTL, 1-hour max)
+
+  ---
+  2️⃣ ACCOUNT SETTINGS MODULE
+
+  Account Profile
+
+  - ✅ Owner data management (with "Clear data" button + warning)
+  - ✅ Organization Location:
+    - Country (locked after initial setup)
+    - State/Region (locked after initial setup)
+    - City (editable for typos/district changes)
+    - Timezone (auto-set by country, locked)
+    - Language (auto-set by country, editable; Spanish default, multi-language enabled)
+    - Date format (auto-internal, not user-changeable)
+  - ✅ Close account (deactivates access, preserves clinical records per law)
+
+  Account Security
+
+  - ✅ Contact management, password changes
+  - ✅ Audit history (Phase 2: filters + CSV export)
+
+  ---
+  3️⃣ USERS & PERMISSIONS MODULE
+
+  User Management
+
+  - ✅ List all users created by owner
+  - ✅ Display: Name, Email, Role, Status, Last Login
+  - ✅ Operational States (5-state flow):
+    - 🟠 Invited → Invitation sent, pending activation
+    - 🟡 Incomplete → Account activated, profile incomplete
+    - 🟣 Pending → Profile complete, awaiting admin validation
+    - 🟢 Active → Validated, can receive appointments
+    - 🔴 Inactive → Administratively disabled
+
+  Doctor Invitation Flow
+
+  - ✅ Invite User Modal:
+    - Full name (required)
+    - Email (required, valid format)
+    - Role (default: Clinical in Phase 1)
+  - ✅ Generate single-use invite token (JWT/UUID, 24h validity)
+  - ✅ Send invitation email with secure link
+  - ✅ Confirmation Modal:
+    - "A secure link will be sent to the entered email"
+    - "Link expires in 24 hours"
+    - "Do not share this link"
+    - Complies with Law 29733 & OWASP best practices
+
+  Invitation Email (Sent to Doctor)
+
+  - ✅ Personalized greeting: "Hello, Dr. [Name]"
+  - ✅ Explanation: Invited by [Clinic Name] to join Vitas
+  - ✅ [Activate Account] button
+  - ✅ 24-hour expiration notice
+  - ✅ Security warning: "Do not share this email or link"
+  - ✅ Legal footer (Law 29733 compliance)
+
+  Activation Screen (Doctor completes)
+
+  - ✅ Create password (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+  - ✅ Confirm password (with validation)
+  - ✅ Password strength indicator (Weak/Medium/Strong)
+  - ✅ Accept Terms & Privacy Policy (checkbox + link)
+  - ✅ [Activate Account] button
+  - ✅ [Cancel Activation] button (with warning modal)
+  - ✅ Auto-login after activation (no manual login required)
+  - ✅ Redirect to Clinical Profile to complete professional data
+
+  ---
+  4️⃣ CLINICAL PROFILE OF DOCTOR
+
+  Professional Profile Completion
+
+  - ✅ Personal Data:
+    - Full name (read-only if from invitation)
+    - Document type & number (DNI/CE/Passport)
+    - Date of birth (age auto-calculated)
+    - Gender, Address
+    - Personal phone & emergency contact
+    - Email (read-only if from invitation)
+    - Digital signature (PNG image for clinical documents, Law 27269)
+  - ✅ Professional Data:
+    - Profession (Doctor, Nurse, Obstetrician, etc.)
+    - CMP (required if Profession = Doctor)
+    - RNE (if applicable)
+    - Primary specialty (+ optional subspecialty)
+    - Primary work location (required)
+    - Secondary work location (optional)
+
+  Profile States & Validation
+
+  - ✅ Badge States:
+    - 🟡 Incomplete → Missing CMP/Specialty/Location
+    - 🟣 Pending → Complete, awaiting admin validation
+    - 🟢 Active → Validated and schedulable
+  - ✅ Owner Validation:
+    - "Verify Profile" button
+    - Changes status from Pending → Active
+    - Creates/updates Practitioner & PractitionerRole
+    - Registers AuditEvent with IP timestamp
+
+  Onboarding vs Normal Mode
+
+  - ✅ Onboarding Mode (from activation link):
+    - Opens in edit mode by default
+    - Toast: "Account activated. Complete your professional profile."
+    - Hides sidebar, owner modules, AI assistant, notifications
+  - ✅ Normal Mode (after Active):
+    - Full platform layout (sidebar + modules)
+    - Opens in read-only; "Edit" button available
+
+  ---
+  5️⃣ LEGAL DOCUMENTS & CONSENTS
+
+  Document Management
+
+  - ✅ Owner creates/uploads institutional legal documents:
+    - Custom title (e.g., "Privacy Policy", "Teleconsultation Consent")
+    - Public URL or signed PDF hosted on clinic's website
+    - Version & effective date
+  - ✅ Download VITAS Base Template:
+    - Disclaimer: "Template must be reviewed, adapted, and legally validated by the clinic before publication. VITAS assumes no responsibility for modified content."
+  - ✅ Document Versioning:
+    - Each document includes: policyUri, version, hash (integrity check)
+    - If owner changes document/version → previous consents marked as Outdated
+    - AI assistant requests re-acceptance from patient
+
+  Patient Consent Flow
+
+  - ✅ Manual Mode (Phase 1):
+    - Doctor downloads documents
+    - Patient signs physically
+    - Doctor uploads signed document
+    - Status: ✅ Verified (manual)
+  - ✅ Intelligent Mode (AI Assistant):
+    - AI sends policyUri links to patient via WhatsApp
+    - Patient accepts digitally (simple electronic signature)
+    - Status: ✅ Accepted (intelligent)
+  - ✅ Consent States:
+    - ❌ Not Accepted → No external messages allowed
+    - ✅ Accepted → Patient can receive notifications
+    - ✗ Revoked → All external messaging stops immediately
+    - ● Outdated → Document version changed, re-acceptance required
+
+  Audit & Traceability
+
+  - ✅ Every consent acceptance logged:
+    - userId, terms_version, hash_terms, IP, timestamp, action
+  - ✅ AuditEvent + Provenance (FHIR)
+  - ✅ WORM storage (S3 Object Lock - Compliance mode)
+
+  ---
+  6️⃣ OPERATIONAL PARAMETERS
+
+  - ✅ Appointment Policies:
+    - Maximum late arrival tolerance (min)
+    - Free rescheduling allowance (count)
+    - Penalty for late cancellation (%)
+    - No-show limit before blocking (count)
+    - Refund administrative fee (%)
+    - Refund request deadline (hours post-appointment)
+    - Credit validity after no-show (days)
+    - Extra recording time tolerance (min after appointment)
+  - ✅ Authorized Communication Channels:
+    - WhatsApp, SMS, Email (checkboxes)
+  - ✅ Post-Appointment Reminder Timing:
+    - Hours after appointment to send follow-up/results/surveys
+  - ✅ Sender Name/Signature:
+    - Identity visible in AI or system messages
+  - ✅ Message Template Base:
+    - Editable text with dynamic variables: {name}, {hour}, {doctor}, etc.
+  - ✅ Use Default VITAS Policies:
+    - Button to apply VITAS base policies (locked fields)
+    - Displays: "Using VITAS base configuration (current version v1.x)"
+    - Disclaimer: "By using VITAS defaults, clinic temporarily accepts system-defined operational conditions. Customization requires uploading your own legal documents."
+  - ✅ Change History:
+    - Date, User, Field Changed, Old Value, New Value
+    - WORM storage for audit (RENHICE + Directiva 373-MINSA/OGTI-2025)
+
+  ---
+  7️⃣ CLINIC LOCATIONS (Phase 2 - Multi-Location)
+
+  - 🔷 Create, edit, inactivate clinic locations
+  - 🔷 Required fields: Name, Address (street/number), District/Province/Department, Phone (optional), Status (Active/Inactive)
+  - 🔷 Mark as Primary: Exactly one location must be primary
+  - 🔷 Delete: Only if no professionals, schedules, or clinical histories linked
+  - 🔷 Locations referenced by PractitionerRole.location and Agenda
+
+  ---
+  8️⃣ MARKETING & COMMUNICATION
+
+  Campaigns
+
+  - ✅ Campaign Fields:
+    - Campaign title (short text)
+    - Validity (start-end dates; appears red when expired)
+    - Linked services (multi-select from clinic services)
+    - Campaign information (large text field with terms, prices, dates, restrictions)
+    - Disclaimer: "Describe terms and conditions, including prices, validity, restrictions, and any text you want the AI assistant to use when responding to patients."
+  - ⚠️ Pending: Payment handling for discounted services
+
+  Social Media
+
+  - ✅ Add social media links:
+    - Predefined options: Facebook, Instagram, TikTok, LinkedIn
+    - "Other" option to add custom network name
+  - ✅ AI assistant references these links when suggesting patients visit social media
+
+  AI Virtual Assistant
+
+  - ✅ Photo: Upload assistant avatar (visible to patient on WhatsApp)
+  - ✅ Name: Personalized assistant name
+  - ✅ WhatsApp Phone Number: Business number for chatbot
+  - ✅ Webchat Link: Copy/paste link for embedding
+    - Buttons: Copy, Generate QR, Test Link
+    - QR download formats: PNG, SVG, PDF
+    - White-label + "Powered by Vitas" footer
+    - Patient sees: consent banner, quick OTP/signed-link identification, can register/book/pay
+
+  ---
+  9️⃣ HUMAN SUPPORT CONFIGURATION
+
+  - ✅ Contact Name/Role: e.g., "Patient Support Area", "Clinical Support"
+  - ✅ Human Support Hours: When human staff responds (e.g., Mon-Fri 8:00-18:00)
+  - ✅ Support Email: Official address for complaints, inquiries, ARCO rights
+  - ✅ Support Phone/WhatsApp: Direct human support line
+  - ✅ Support Web URL/Form: Link to clinic's contact/complaints form
+
+  AI Assistant Behavior:
+
+  - ✅ Shows only configured channels (if field empty, channel not offered)
+  - ✅ Triggers on keywords: "human", "help", "operator", "complaint", "don't understand"
+  - ✅ Outside Hours: "Our human team will respond during: Mon-Fri 8:00-18:00"
+  - ✅ All Handoffs Logged: AuditEvent with date/time, request type, channel, user, reason
+
+  Legal Compliance:
+  - ✅ Law 31814 (AI with human supervision)
+  - ✅ Law 29733 (personal data & ARCO rights)
+  - ✅ Law 29414 (patient right to information & complaints)
+  - ✅ Law 30024 & Directiva 373-MINSA/OGTI-2025 (digital health traceability)
+
+  ---
+  🔟 MESSAGING & REMINDERS
+
+  Configuration Parameters:
+
+  - ✅ Number of Reminders: Total messages sent before appointment (e.g., 2)
+  - ✅ Send Intervals: When reminders are sent (e.g., 24h, 1h before appointment)
+  - ✅ Allowed Send Hours: Time window to avoid nocturnal messages (e.g., 08:00-21:00)
+  - ✅ Authorized Channels: WhatsApp, SMS, Email
+  - ✅ Post-Appointment Reminder Time: Hours after appointment to send follow-up/results/surveys
+  - ✅ Sender Name: Identity shown in messages (e.g., "Clinic VITAS Lima")
+  - ✅ Base Message Template: Editable text with variables: {name}, {hour}, {doctor}, etc.
+
+  AI Assistant Behavior:
+
+  - ✅ Automatic Language Detection: Responds in patient's initial language
+  - ✅ Consent-Based Sending:
+    - Messages only sent if "External Messages" consent is ✅ Active
+    - If ✗ Revoked or ❌ Not Accepted → all sending blocked immediately
+  - ✅ Respects Send Hours: No messages outside configured window
+  - ✅ Auto-Cancellation: Pending messages canceled if appointment is canceled/rescheduled
+  - ✅ Personalized Messaging (Intelligent Mode): AI adapts content by patient, appointment type, doctor, specialty, operational parameters
+
+  Message Types:
+
+  1. Pre-Appointment Reminders (based on intervals)
+  2. Post-Appointment (results/satisfaction surveys)
+  3. Administrative Alerts (pending payments, no-show penalties)
+  4. Support Communications (human handoff messages)
+
+  Message History & Audit:
+
+  - ✅ Message Log (Admin View):
+    - Date, Message Type, Channel, Status, Actor, Result
+    - Filters: patient, date, channel, message type
+    - Read-only table
+  - ✅ Logged Fields:
+    - Exact date/time, Channel (WhatsApp/SMS/Email), Message type, Responsible actor (AI/system/human), Status (sent/delivered/failed/canceled), Linked consent, Purpose (purposeOfUse: treatment/administration/follow-up), Delivery
+  result
+  - ✅ 12-Month Minimum Retention for audit
+  - ✅ WORM Storage (Write-Once-Read-Many) to prevent tampering
+
+  Compliance:
+  - ✅ Law 29733 (express consent for electronic communications)
+  - ✅ Law 31814 (transparency & human supervision of AI)
+  - ✅ NTS 139-MINSA (timely communication with health user)
+
+  ---
+  1️⃣1️⃣ SERVICES OF HEALTH - SPECIALTIES & PROCEDURES
+
+  Medical Specialties Management
+
+  - ✅ Pre-Creation (from Services module):
+    - + Add Specialty → autocomplete search (suggest or "Create '{text}'")
+    - Saved as 🔵 Planned (blue): parameterizable, not yet schedulable
+  - ✅ Just-in-Time Creation (Phase 2 - from Clinical Professionals):
+    - While adding professional → create & assign specialty simultaneously
+  - ✅ Specialty States:
+    - 🔵 Planned (blue) → Created, no doctors assigned, not schedulable
+    - 🟢 Active (green) → ≥1 doctor assigned, schedulable
+    - 🔴 Inactive (red) → Paused/closed, no new appointments, historical data intact
+  - ✅ State Transitions:
+    - Planned → Active: automatic when first PractitionerRole (doctor) is created
+    - Active → Inactive: admin action (deactivate button)
+    - Inactive → Active: admin action (reactivate button)
+    - No Active → Planned transition
+  - ✅ Configurable Parameters per Specialty:
+    - Appointment duration (min): 10, 15, 20, 30, etc.
+    - Buffer between appointments (min): 0-30 min (non-schedulable time after appointment for operations/cleanup/SOAP/transition)
+    - Base consultation price: Standard rate for all doctors in specialty
+  - ✅ Automatic Parameters (read-only, global policy):
+    - Late = 30% of duration: Grace period before marking "Late"
+    - No-show = 100% of duration: Threshold before marking "No-show"
+  - ✅ Buffer Rules (Phase 1):
+    - Configurable per specialty (and per location if applicable)
+    - Suggested default: 10% of duration (min 1 min), range 0-30 min
+    - Does not generate schedulable slots
+    - If actual appointment end ≤ buffer → next appointment doesn't move
+    - If actual end exceeds buffer → next appointment shifts by excess (marked "delay", no intrusive banners in F1)
+    - Late/no-show evaluated against programmed time (not buffer)
+    - Respects doctor's pauses/blocks
+    - Not counted as productive time in reports
+    - Changing duration recalculates grid; buffer unchanged unless manually edited
+  - ✅ Assign Doctor (Phase 1):
+    - From Clinical → Professional Profile → + Add Clinical Role
+    - Admin selects existing specialty from catalog
+    - Creates Doctor ↔ Specialty ↔ Location link (PractitionerRole)
+    - Auto-activates specialty if it was Planned
+    - Doctor must have active user account (Clinical system role)
+  - ✅ "Search or Create" Flow (UI from Services):
+    - Autocomplete: suggests while typing; if none, "Create '{text}'"
+    - On select/create: saves and shows "Specialty saved ✓"
+    - Anti-duplication: normalize name (singular, standard capitalization); if close match → "Use existing 'Dermatology'?"
+    - No codes in UI (Phase 2/3: map to SNOMED/MINSA)
+  - ✅ Responsibilities:
+    - Admin defines/updates specialty parameters
+    - Doctors only manage blocks/pauses in their agenda
+    - Admin changes impact all doctors in specialty
+  - ✅ Visibility:
+    - Health Professionals module: shows only Active specialties
+    - Services module: shows all (with state chips; optional filters later)
+  - ✅ Card UI (list):
+    - Tap → Detail (no quick switches)
+    - Content: Name · Price (Active=normal; Planned="Define/—"; Inactive=gray) · Location (if applicable) · State chip (green/blue/red)
+  - ✅ Empty States:
+    - Initial: "You don't have specialties yet. Search or create them with the field above."
+    - No matches: "No specialties found for '{text}'. Create '{text}'"
+  - ✅ Edit Parameters:
+    - Tap specialty card → Detail → ✏ Edit Parameters (modal)
+    - Specialty name: read-only (don't change for traceability; if no longer offered, deactivate and create new if needed)
+    - Editable fields (integers; location-scoped if applicable):
+        - Appointment duration (min)
+      - Buffer between appointments (min)
+      - Base consultation price
+    - Automatic fields (read-only):
+        - Late = 30% of duration
+      - No-show = 100% of duration
+    - Validations: Duration: 5-min step, min 5 | Buffer: 0-30 min, integers, hint "does not generate slots" | Preview recalculated "Late"/"No-show" in minutes when duration changes
+    - Confirmation: If doctors already linked → alert: "⚠ This change will impact all doctors in this specialty. Continue?" [Save Changes] [Cancel]
+    - On save: parameters apply immediately to all doctors; future schedule recalculated per rules; historical data unchanged
+  - ✅ Deactivate Specialty:
+    - From detail → Deactivate Specialty button (red outline)
+    - Confirmation Modal:
+        - "By deactivating this specialty:"
+      - "• No new appointments can be created in this specialty"
+      - "• Doctors will stop receiving bookings in this specialty"
+      - "• Appointment and billing history will be preserved"
+      - "Continue?" [Cancel] / [Deactivate]
+    - Effect:
+        - Changes state to 🔴 Inactive
+      - Historical clinical/financial data intact
+      - Doctors no longer receive new bookings in this specialty
+      - Future appointments: handled per clinic policy (attend / reschedule)
+      - Registers AuditEvent with user, date/time, reason
+    - Restrictions:
+        - Cannot delete specialty with doctors or historical appointments; only deactivate
+      - If never had doctors or appointments → allow Delete Permanently (hard delete) with double confirmation
+    - UI States:
+        - Active / Inactive (chip visible on card)
+      - (Filters optional in future versions)
+    - Visibility in "Health Professionals":
+        - Shows only Active specialties
+      - On deactivate: specialty group disappears; doctor still visible in other active specialties; if only specialty → doctor not listed (but user account remains active)
+  - ✅ Reactivate Specialty:
+    - List filtered by Inactive → select specialty → detail → Reactivate button
+    - Confirmation Modal:
+        - "You are about to reactivate this specialty."
+      - "• Doctors will be able to receive bookings in this specialty again"
+      - "• Patients will be able to schedule new appointments"
+      - "Continue?" [Reactivate] / [Cancel]
+    - Effect:
+        - Returns to 🟢 Active, recovering all previous parameters (duration, buffer, price)
+      - Doctors previously linked regain specialty in their profiles
+      - Historical data intact; no duplication
+      - Audit: registers user & date/time
+  - ✅ AI Assistant (WhatsApp):
+    - If patient tries to book Inactive specialty: "This specialty is no longer available at the clinic. Would you like to see other available options?"
+
+  ---
+  Procedures Management
+
+  - ✅ Add Procedure (Global IPRESS Catalog):
+    - Admin adds procedures/interventions to clinic's global catalog
+    - Available for all doctors, no prior specialty association required
+    - Access: Services → Procedures → + Add Procedure (modal)
+  - ✅ Procedure Fields:
+    - Procedure: search field with autocomplete (filters by name; doesn't show codes)
+    - Standard duration (min): reference/administrative value (planning & costing); actual time may vary by clinical case
+    - Base price (S/): required, admin-defined, used for patient transparency & uniform billing
+    - Modality: Phase 1 = all In-Person only
+    - Location/Site: selector for location where procedure is offered
+    - IPRESS Internal Code (optional): short alphanumeric identifier, unique within IPRESS, used for ERP/insurance/accounting
+    - Buttons: Cancel (left, gray) / Save (right, blue)
+  - ✅ Behavior & Rules:
+    - No mandatory specialty association at creation; procedure becomes globally available for IPRESS
+    - In Doctor's Appointment Detail:
+        - Search shows procedures relevant to doctor's specialty first (prioritization)
+      - Allows searching entire global catalog if procedure not in suggested list
+    - AI Scribe may suggest procedures; doctor can accept, edit, or delete them
+    - Backend Codifications (not visible in UI):
+        - VITAS.code (internal master ID, immutable)
+      - ICHI (international standard)
+      - Local catalog per country (e.g., IEDS in Peru)
+      - IPRESS Internal Code (if entered)
+    - Internal Code Validations:
+        - Must be unique
+      - Short alphanumeric format
+      - Editable only while no billing/orders exist; afterward, requires controlled change flow
+  - ✅ States & Messages:
+    - If no active specialties in clinic and admin enters Procedures: Show notice: "To operate procedures in appointments, first activate at least one specialty." [Go to Specialties]
+    - No search matches: "No procedures found for '{text}'. Try another term."
+    - Catalog fails to load: "Could not load catalog. Retry later."
+  - ✅ Edit Procedure:
+    - List → select procedure → detail modal
+    - From modal: Edit (modify parameters) or Deactivate/Delete per rules
+  - ✅ Edit Rules:
+    - Read-Only Fields:
+        - Procedure name (derived from VITAS master catalog)
+      - Automatic codifications: VITAS.code, ichi_code, ichi_display, ieds_code, ieds_display, SNOMED (future)
+      - Usage history (count of appointments/orders where used)
+    - Editable Fields:
+        - Standard duration (min) → reference/administrative (doesn't condition clinical practice)
+      - Base price (S/) → required
+      - Modality → Phase 1: In-Person only
+      - Location/Site
+      - IPRESS Internal Code → editable only if not yet used in billing/orders; otherwise requires controlled change flow
+    - Confirmation & Save:
+        - Buttons: Cancel (left, gray) / Save Changes (right, blue)
+      - If procedure already has appointments/billing: show warning: "⚠ Attention: Changes in duration or price will impact all doctors and future appointments using this procedure. Continue?"
+  - ✅ Deactivate vs. Delete:
+    - Delete Permanently → only allowed if procedure has never been used in appointments, orders, or billing
+    - Deactivate → if already used:
+        - Becomes inactive and cannot be selected in new appointments
+      - Clinical and administrative history preserved
+      - Can be reactivated in the future if IPRESS requires it
+
+  - ✅ Deactivate Procedure:
+    - Detail modal → Deactivate button
+    - Confirmation:
+        - "By deactivating this procedure:"
+      - "• Cannot be selected in new appointments"
+      - "• Internal billing for this procedure will be disabled"
+      - "• Clinical and administrative history will be preserved"
+      - "Continue?" [Cancel] / [Deactivate]
+    - Effect:
+        - Status → 🔴 Inactive
+      - Cannot be used in new appointments/orders or billed internally
+      - In doctor's UI: if manually searched or AI-suggested, shows notice: "This procedure is inactive at the clinic. If the case requires it, can be indicated for external performance."
+      - If doctor selects it → registered as Requested (outside IPRESS) (no internal execution/billing)
+      - System registers audit: user, date/time, reason (optional)
+    - Restrictions:
+        - Cannot delete procedure with appointments/orders/billing history; only deactivate
+      - If never used → allow Delete Permanently (hard delete) with double confirmation
+  - ✅ Reactivate Procedure:
+    - List filtered by Inactive → select procedure → detail modal → Reactivate button
+    - Confirmation:
+        - "You are about to reactivate this procedure."
+      - "• Will be available again in new appointments"
+      - "• Internal billing will be enabled"
+      - "Continue?" [Reactivate] / [Cancel]
+    - Effect:
+        - Returns to 🟢 Active, recovering previous parameters (duration, price, location, internal code)
+      - Available again in Appointment Detail for doctors
+      - Historical data intact; no duplication
+      - Registers audit: user & date/time
+  - ✅ Procedures Outside IPRESS:
+    - IPRESS Procedure Catalog is fed from VITAS Master Catalog, which includes mappings to:
+        - ICHI (international procedures)
+      - Local Catalog per country (e.g., IEDS in Peru)
+      - SNOMED CT (if applicable)
+    - Admin selects procedures that will be active in the clinic and configures parameters (base price, standard duration, location, internal code)
+    - Active procedures appear as available options in Appointment Detail and can be requested & billed within clinic
+    - Clinical Exception:
+        - Doctors can prescribe any procedure from VITAS Master Catalog, even if not active in IPRESS
+      - In such cases:
+            - Procedure marked in clinical history as Requested (outside IPRESS)
+        - No execution/billing enabled within clinic
+        - System informs patient: "This procedure is not available at this clinic. Can be performed at another center."
+    - Principle:
+        - Admin controls clinic's operational offering
+      - Doctor retains clinical freedom to prescribe what's necessary, ensuring traceability even if IPRESS doesn't offer the procedure
+      - Patient receives clear, transparent info on what can be done in-clinic vs. what must be referred elsewhere
+  - ✅ VITAS Catalog Maintenance:
+    - VITAS Catalog is a central inventory based on WHO ICHI standard
+    - Maintenance is system responsibility, performed automatically without IPRESS admin intervention
+    - Maintenance Rules:
+        - When WHO updates ICHI → system auto-updates ichi_code and ichi_display, maintaining immutable VITAS.code
+      - When MINSA updates IEDS (Peru) → system updates mappings (ieds_code, ieds_display) and registers new fecha_version of national catalog used
+      - In future phases, if Vitas expands to other countries → local catalog codes for those countries can be added to same VITAS.code, ensuring global traceability
+      - Backend also stores reference to SNOMED CT as future integration for international interoperability (not included in Phase 1)
+    - Principle:
+        - IPRESS admin does not create or maintain procedures from scratch; always selects from VITAS Catalog
+      - System ensures international and national codes remain updated and consistent at all times
+
+  ---
+  1️⃣2️⃣ HEALTH PROFESSIONALS MODULE
+
+  Professional List
+
+  - ✅ Visual Hierarchy:
+    - H1: "Health Professionals"
+    - Search bar: "Search professionals"
+    - Section controls: + Add Professional (centered button)
+    - H2: "Professional List"
+    - Headings: Specialties (as section dividers, fixed on scroll)
+    - Cards: Within each heading
+  - ✅ Card Content (PractitionerRole = Professional + Specialty + Location):
+    - Name & Surname (bold)
+    - CMP (if doctor): Format "CMP 12345"
+    - Location: "Location: San Vitas Surco"
+    - Photo (optional; placeholder if none)
+    - No "Active" chip (list shows only active by default)
+    - Tap card: Opens → Professional Profile
+  - ✅ Search Behavior (Phase 1):
+    - Search Fields: Practitioner.name (names & surnames) and Practitioner.qualification (CMP only)
+    - NOT indexed in F1: DNI/CE/Passport, RNE, email, phone
+    - Matching Rules:
+        - Case & accent insensitive
+      - Space tokenization with AND operator (all tokens must match in some field)
+      - Partial prefix match from 2 chars ("an" matches "Ana", "Andrés")
+      - Numeric search: If input is numeric (e.g., 1234), search in CMP; accept variants: CMP1234, CMP 1234, or just 1234
+      - Normalization: collapse multiple spaces, ignore dots/commas in query
+    - Scope: Searches only Active professionals (Inactive not shown in F1)
+    - Result Order:
+        i. Exact CMP matches first (if input numeric)
+      ii. Then by Surname A–Z within each Heading (specialty)
+      iii. Maintain grouping by specialty (Headings) in render
+    - Performance & UX:
+        - Debounce: 250 ms
+      - Min chars: 2 to activate search
+      - Limit results per render: 50 items (virtualization if list extensive)
+      - Clear button (✕): appears when text present; clears field & restores default list
+      - Empty: message "No professionals found with '{text}'"
+  - ✅ General Behavior & Rules (Phase 1):
+    - Grouping: always by Specialty (Headings)
+    - Default Order: alphabetical by Surname
+    - Visibility: list shows only Active; Inactive not listed in F1
+    - Deactivate: not on card; done from Professional Profile
+    - Reactivate: if onboarding detects match with Inactive professional, admin reactivates from Professional Profile (no duplicate creation)
+
+  Add Professional (Phase 1)
+
+  - ✅ + Add Professional button redirects to Account Settings → Users & Permissions → + Add User (Role: Clinical)
+  - ✅ Phase 2:
+    - From Account Settings → Users & Permissions: can pre-fill data, send invitation, and link user with professional (no duplicate records)
+    - (Optional: re-enable direct creation from Clinic with pre-fill)
+  - ✅ Rule Maintained:
+    - Professional is schedulable only when User is Active and has ≥1 Active Clinical Role (Specialty/Location)
+
+  Professional Profile
+
+  - ✅ Navigation: Clinic → Health Professionals → Professional Profile
+  - ✅ Internal Sections:
+    a. Personal Data
+    b. Professional Data
+
+  (Security access is external link; not a section here)
+  - ✅ Personal Data Section:
+    - Photo + Full Name
+    - Document (DNI/CE/Passport): masked (e.g., --123)
+    - Document Type/Number, Date of Birth (Age calculated), Gender, Address
+    - Phone (personal contact) and Email (personal contact) — read-only; edited in Users & Permissions (OTP)
+    - Emergency Contact Phone (read & edit by Admin)
+    - Edit (Admin): official fields editable
+    - Editing Mode per Section:
+        - Each of two sections (Personal Data and Professional Data) has pencil button at bottom
+      - Pressing pencil → only that section enters edit mode; other stays read-only
+      - In edit mode: Save and Cancel buttons appear within same section (at bottom)
+      - Validation: only active section fields
+      - Concurrency: edit one section at a time
+      - Exit with unsaved changes: if attempting to switch section or leave, show confirmation to save/discard
+  - ✅ Professional Data Section:
+    - Concept: each role is a PractitionerRole = Professional + Specialty + Location
+    - Initial Section Fields (no independent header):
+        - CMP (if doctor) and RNE (if exists)
+      - Quick Access Links:
+            - View professional's schedule (navigates to schedule view)
+        - Edit user access (navigates to Users & Permissions)
+      - Status Notice: if all roles inactive, show banner: "This professional has no active roles. Cannot receive new appointments."
+    - Professional Summary (derived from active roles):
+        - Profession (catalog: Human Medicine, Obstetrics, Nursing, etc.)
+      - Active specialties (summary): comma-separated list
+      - Primary work location (read-only; marked as primary in one role)
+      - Secondary work locations (read-only; rest of active locations)
+      - Digital Signature (graphic): transparent PNG image of handwritten signature (optional; non-binding value). Phase 2: digital signature certificate for clinical documents
+    - Role List (table/cards):
+        - Specialty · Location · Status (Active / Inactive / Suspended by specialty) · Schedule (Configure) · Action (Deactivate)
+      - Available Action (F1): Deactivate (role)
+      - Reactivate not in this profile in F1 (see next)
+      - Schedule Access: Configure Schedule button per role → block/pause configuration (duration & rules come from Specialty)
+    - Add Role:
+        - + Add Role (specialty/location) button:
+            - Specialty: select from catalog (Active only)
+        - Location: select one or multiple
+                - In F1 mono-location: Location (Site) auto-assigned to clinic's default location
+        - Result: creates PractitionerRole.active=true per combination
+        - Audit: professional.role.add
+    - Schedule Sub-Block (within Professional Data):
+        - View per role with direct access to Configure Schedule (blocks/pauses)
+      - Global parameters (duration/buffers/no-show) come from Specialty and are not editable here in F1
+  - ✅ Deactivate Role (F1):
+    - Action: Deactivate button in role row/card
+    - Confirmation: "You are about to deactivate this role (Specialty/Location). The professional will stop receiving new appointments in this combination. Continue?" [Deactivate] [Cancel]
+    - Effect: PractitionerRole.active=false; role no longer appears in List (F1 shows only active); Historical data intact
+  - ✅ Reactivate Role (F1):
+    - Not available in this profile
+    - Performed via deduplication in + Add Professional: when entering Document or CMP of inactive professional, system proposes Reactivate (no duplicate)
+    - Phase 2: Reactivate button in this profile (per role) with same audit
+  - ✅ States & Dependencies:
+    - Suspended by specialty: if Specialty is inactive, role becomes suspended (no appointments) and Deactivate is disabled (already out of operation)
+    - Account vs Role: activate/block account (login) is done in Settings → Account Security and does NOT change PractitionerRole.active
+  - ✅ Cross Links:
+    - View account security → Settings → Security
+    - View Specialty → opens specialty detail (duration/buffers/base price)
+  - ✅ Errors & Empty States:
+    - No roles: show CTA + Add Role (specialty/location)
+    - Inactive Specialty: prevent adding role with that specialty (clarifying message)
+    - Save Error: banner with Retry and preserve local changes
+
+  ---
+  🔷 PHASE 2 - PLANNED FEATURES
+
+  Advanced Features (Not in Phase 1)
+
+  - 🔷 Audit History Export: CSV export with filters (date, user, action) in Account Settings → Security
+  - 🔷 Just-in-Time Specialty Creation: Create specialty while adding professional
+  - 🔷 Multi-Location Management: Assign professionals to multiple clinic locations
+  - 🔷 Invite Doctors from Services Module: Direct from Specialty Detail
+  - 🔷 Financial & Statistics Modules: Revenue tracking, performance metrics
+  - 🔷 Advanced User Roles: Secretary, Location Admin, Auditor roles
+  - 🔷 Automatic CMP Validation: Against Peruvian Medical Board (Colegio Médico del Perú) registry
+  - 🔷 Professional Deduplication: Match by DNI/CMP to prevent duplicates
+  - 🔷 Advanced Session Control: Force password reset
+  - 🔷 Buffer by Attention Type (Specialty): Consultation vs Procedure, with fallback to base buffer
+  - 🔷 Global IPRESS Parameters for Delay:
+    - Delay notice threshold (≥5 min, editable)
+    - Reprogramming offer threshold (≥15 min, editable)
+    - Authorized send hours (e.g., 08:00-21:00)
+    - Message templates (notice / offer reprogramming)
+  - 🔷 Delay Notification Behavior:
+    - ETA (estimated attention time) based on accumulated delay; respects pauses/blocks
+    - Anti-spam: max 1 notice per appointment; second notice only if additional ETA change ≥5 min
+    - Patient "arrived": no messaging; notifies Reception
+    - Consents: messages only if Privacy ✓ and External Messages ✓
+  - 🔷 AI Assistant Delay Flows:
+    - Courtesy notice (≥notice threshold): "Your {HH:mm} appointment has ~{X} min delay. ETA: {HH:mm}."
+    - Reprogramming offer (≥reprogramming threshold): "Delay may exceed {X} min. Wish to reschedule?" (1) Keep (2) Reschedule first option (3) See more options; rescheduling may require OTP; 90s hold on alternate slot
+  - 🔷 Audit & Reports:
+    - AuditEvent: delay.detected, delay.notify, delay.offer_rebook, appointment.rebooked/rebook_declined, frontdesk.alerted (with appointmentId, delayMinutes, oldStart/newETA, channel, actor, timestamp, outcome)
+    - Reports: % buffer consumed, delay minutes, punctuality, avg wait time (CSV export)
+    - Buffer excluded from productivity
+  - 🔷 List Filters & Sorting (Professionals):
+    - Filters: Status → "Include inactive", Location, Specialty (with badge & active chips); located next to "Sort", between Section title and Search bar
+    - Sort: A–Z / Recent (optional duplicate inside filter panel); located next to "Filters"
+  - 🔷 Reactivate Role Button in Profile: With same audit as deduplication flow
+  - 🔷 Required Reason for Deactivate/Activate Role
+  - 🔷 Digital Signature Panel: Professional's signature certificate & validity status
+  - 🔷 Contact Edit with Inline OTP
+
+  ---
+  ✅ TECHNICAL CHECKLIST
+
+  Data Model (DynamoDB Tables)
+
+  - ✅ users (userDetails, status: pending/incomplete/pending_validation/active/inactive, mfa_enabled)
+  - ✅ tenants (clinic/IPRESS info, ownerUserId, status)
+  - ✅ audit_logs (userId, tenantId, action, ip, timestamp, entity_type, entity_id, metadata)
+  - ✅ legal_documents (type, target, version, hash, url, is_active)
+  - ✅ Doctors_Table_V2 (doctor_id, email-index, active_for_ai_booking-index)
+  - ✅ Patients_Table_V2 (patient_id, phone_number-index, chatbot_access)
+  - ✅ PatientDoctors (junction: doctor_id PK, patient_id SK)
+  - ✅ Appointments_Table_V2 (appointment_id-index, doctor_id-index, doctor_id-created_at-index)
+  - ✅ Vitas_Appointment (appointment_id-index, TTL for unpaid)
+  - ✅ Vitas_Schedule_Config (doctor_id PK, CONFIG SK, weekday slots)
+  - ✅ vitas-otp (phoneNumber PK, context: chatbot/payment, 5-min TTL)
+  - ✅ wa_sessions (WhatsApp session, threadId, jwt, 15-min idle TTL, 1-hour max)
+
+  API Endpoints (Phase 1)
+
+  - ✅ POST /auth/register → Create owner User
+  - ✅ POST /auth/verify-email → Verify token
+  - ✅ POST /legal/accept-terms → Simple electronic signature with IP
+  - ✅ POST /tenant → Create Tenant
+  - ✅ GET /tenant/{tenantId}/users → List users
+  - ✅ POST /tenant/{tenantId}/users/invite → Create User (invited), send invite_token
+  - ✅ POST /auth/accept-invite → Doctor creates password (invited → incomplete)
+  - ✅ PATCH /tenant/{tenantId}/users/{userId}/status → State transitions
+  - ✅ GET /me/clinical-profile → Read professional profile
+  - ✅ POST /me/clinical-profile → Complete/update profile (incomplete → pending)
+  - ✅ POST /tenant/{tenantId}/doctors/{userId}/validate → Admin validates (pending → active)
+  - ✅ POST /me/mfa/setup, /verify, /disable → MFA management
+  - ✅ GET /me/sessions → List active sessions
+  - ✅ DELETE /me/sessions/{sessionId} → Revoke session
+  - ✅ POST /legal/accept → Record consent acceptance with IP/timestamp
+
+  Security & Compliance
+
+  - ✅ Argon2id for password hashing
+  - ✅ JWT tokens (HS256): 24h doctor, 24h patient payment, 2h chatbot
+  - ✅ Invite tokens: Single-use JWT/UUID, 24h validity
+  - ✅ AWS S3 + KMS encryption for files (signatures, CMP, consent documents)
+  - ✅ Rate Limiting via Upstash Redis
+  - ✅ WORM storage (S3 Object Lock - Compliance) for audit trails
+  - ✅ Legal Compliance:
+    - ✅ Law 29733 (Personal Data Protection)
+    - ✅ Law 29414 (Patient Rights)
+    - ✅ Law 27269 (Digital Signatures)
+    - ✅ Law 30024 (RENHICE - National Electronic Health Records)
+    - ✅ Law 31814 (AI with Human Supervision)
+    - ✅ NTS 139-MINSA (Technical Health Standard)
+    - ✅ Directiva 373-MINSA/OGTI-2025 (Digital Health Audit)
+    - ✅ OWASP Best Practices
+
+  ---
+  This updated functionality list is comprehensive and aligned with both the technical summary you provided and the complete PDF documentation. The implementation focuses on Phase 1 MVP with clear markers for Phase 2 futur
