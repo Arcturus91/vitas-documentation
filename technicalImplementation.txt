@@ -1,0 +1,493 @@
+⏺ Perfect! Let me present my proposed architecture for the Doctor Invitation/Sign-Up Flow. Based on the acceptance criteria and the existing authentication patterns, here's what I'm
+  considering:
+
+  🏗️ PROPOSED ARCHITECTURE: Doctor Invitation & Sign-Up Flow
+
+  Overview
+
+  Implement a complete user management system where:
+  1. Owner registers and creates a clinic/IPRESS
+  2. Owner invites doctors via email
+  3. Doctor activates account and sets password
+  4. Doctor completes clinical profile
+  5. Owner validates and activates doctor
+
+  ---
+  1. DATABASE SCHEMA (New Tables in DynamoDB)
+
+  Table: Users_Table
+
+  {
+    user_id: string;              // PK: UUID
+    email: string;                // GSI: email-index (UK)
+    password_hash: string;        // Argon2id
+    full_name: string;
+    role: string;                 // "owner" | "doctor" | "patient"
+    status: string;               // "invited" | "incomplete" | "pending" | "active" | "inactive"
+    tenant_id: string;            // FK to Tenants_Table, GSI: tenant_id-index
+    invite_token?: string;        // Single-use JWT token
+    invite_token_expires?: number; // Epoch timestamp
+    mfa_enabled: boolean;
+    mfa_secret?: string;
+    created_at: string;           // ISO timestamp
+    updated_at: string;
+    last_login?: string;
+  }
+
+  Table: Tenants_Table
+
+  {
+    tenant_id: string;            // PK: UUID (clinic/IPRESS ID)
+    owner_user_id: string;        // FK to Users_Table
+    clinic_name: string;
+    country: string;              // Locked after setup
+    state_region: string;         // Locked after setup
+    city: string;                 // Editable
+    timezone: string;             // Auto-set, locked
+    language: string;             // "es" | "en" | "pt", editable
+    status: string;               // "draft" | "incomplete" | "active" | "suspended" | "closed"
+    created_at: string;
+    updated_at: string;
+  }
+
+  Table: Audit_Logs_Table
+
+  {
+    log_id: string;               // PK: UUID
+    timestamp: string;            // SK: ISO timestamp, GSI for sorting
+    user_id: string;              // GSI: user_id-timestamp-index
+    tenant_id: string;            // GSI: tenant_id-timestamp-index
+    action: string;               // "user.created" | "user.invited" | "user.activated" | etc.
+    entity_type: string;          // "user" | "tenant" | "doctor"
+    entity_id: string;
+    ip_address: string;
+    user_agent: string;
+    metadata: object;             // Additional context
+  }
+
+  Link: Users_Table ↔ Doctors_Table_V2
+
+  // Add to existing Doctors_Table_V2
+  {
+    doctor_id: string;            // PK (existing)
+    user_id: string;              // NEW: FK to Users_Table, GSI: user_id-index
+    // ... rest of existing fields
+  }
+
+  ---
+  2. API ENDPOINTS
+
+  Owner Registration & Authentication
+
+  POST /auth/register-owner          # Create owner user + tenant
+  POST /auth/verify-email            # Verify email with 24h token
+  POST /auth/signin-owner            # Owner login (email + password)
+  POST /legal/accept-terms           # Accept T&C with IP stamp
+
+  Doctor Invitation Flow
+
+  POST /users/invite-doctor          # Owner sends invitation
+  GET  /users/validate-invite-token  # Validate invite token (frontend check)
+  POST /users/accept-invite          # Doctor activates account
+  POST /users/resend-invite          # Resend expired invitation
+
+  User Management
+
+  GET  /users                        # List all users by tenant (with filters)
+  PATCH /users/:userId/status        # Change user status
+  GET  /users/:userId                # Get user details
+
+  ---
+  3. DATA FLOW ARCHITECTURE
+
+  Flow 1: Owner Registration
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ STEP 1: Owner Registers                                          │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [Owner Frontend: /register]
+      ↓ POST /api/auth/register-owner
+      ↓ { email, password, fullName, clinicName, country }
+
+  [Next.js API Route: /api/auth/register-owner]
+      ↓ Proxy to AWS API Gateway
+      ↓ POST /auth/register-owner
+
+  [API Gateway → Lambda: RegisterOwnerFunction]
+      ↓ Hash password (Argon2id)
+      ↓ Generate email verification token (24h JWT)
+      ↓ Create user record (status: "draft")
+      ↓ Create tenant record (status: "draft")
+      ↓ Send verification email (Mailgun)
+      ↓ Log audit: "owner.registered"
+      ← Return { userId, tenantId, message: "Check email" }
+
+  [Owner clicks email verification link]
+      ↓ GET /verify-email?token={JWT}
+
+  [Lambda: VerifyEmailFunction]
+      ↓ Verify JWT signature + expiry
+      ↓ Update user status: "draft" → "incomplete"
+      ↓ Update tenant status: "draft" → "incomplete"
+      ↓ Log audit: "owner.email_verified"
+      ← Return success + redirect to /onboarding
+
+  [Owner completes profile + accepts T&C]
+      ↓ POST /legal/accept-terms { userId, ipAddress }
+
+  [Lambda: AcceptTermsFunction]
+      ↓ Record consent with IP + timestamp
+      ↓ Update user status: "incomplete" → "active"
+      ↓ Update tenant status: "incomplete" → "active"
+      ↓ Log audit: "owner.terms_accepted"
+      ← Owner can now access dashboard
+
+  ---
+  Flow 2: Doctor Invitation
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ STEP 2: Owner Invites Doctor                                    │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [Owner Dashboard: /users → Invite User]
+      ↓ POST /api/users/invite-doctor
+      ↓ { email, fullName, role: "doctor" }
+      ↓ Authorization: Bearer {ownerJWT}
+
+  [Next.js API Route: /api/users/invite-doctor]
+      ↓ Proxy to AWS API Gateway
+      ↓ POST /users/invite-doctor
+
+  [API Gateway → Lambda: InviteDoctorFunction]
+      ↓ Verify owner JWT
+      ↓ Check if email already exists (Users_Table email-index)
+      ↓ If exists: Return 409 Conflict
+      ↓ Generate single-use invite token (JWT, 24h expiry)
+      ↓   Payload: { userId, email, role, tenantId, exp }
+      ↓ Create user record:
+      ↓   {
+      ↓     user_id: UUID,
+      ↓     email,
+      ↓     full_name,
+      ↓     role: "doctor",
+      ↓     status: "invited",
+      ↓     tenant_id,
+      ↓     invite_token: JWT,
+      ↓     invite_token_expires: epoch + 24h
+      ↓   }
+      ↓ Send invitation email via Mailgun:
+      ↓   Subject: "Invitación a VITAS - {ClinicName}"
+      ↓   Body: Personalized with activation link
+      ↓   Link: {FRONTEND_URL}/activate?token={inviteToken}
+      ↓ Log audit: "doctor.invited"
+      ← Return { userId, message: "Invitation sent" }
+
+  [Owner sees: Status 🟠 Invited in user list]
+
+  ---
+  Flow 3: Doctor Activation
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ STEP 3: Doctor Activates Account                                │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [Doctor receives email → clicks activation link]
+      ↓ Navigate to /activate?token={inviteToken}
+
+  [Activation Page Frontend]
+      ↓ On mount: Validate token
+      ↓ GET /api/users/validate-invite-token?token={inviteToken}
+
+  [Next.js API Route → Lambda: ValidateInviteTokenFunction]
+      ↓ Verify JWT signature + expiry
+      ↓ Check if invite_token matches user record
+      ↓ Check if status is "invited" (not already activated)
+      ← Return { valid: true, email, fullName } or 400/401
+
+  [If valid, show activation form]
+      ↓ Doctor fills:
+      ↓   - Password (min 8 chars, 1 upper, 1 lower, 1 number)
+      ↓   - Confirm password
+      ↓   - Checkbox: Accept Terms & Privacy Policy
+
+  [Doctor submits form]
+      ↓ POST /api/users/accept-invite
+      ↓ { token: inviteToken, password, acceptedTerms: true }
+
+  [Next.js API Route → Lambda: AcceptInviteFunction]
+      ↓ Verify JWT + invite_token
+      ↓ Validate password strength (backend)
+      ↓ Hash password (Argon2id)
+      ↓ Update user record:
+      ↓   {
+      ↓     password_hash: hashedPassword,
+      ↓     status: "invited" → "incomplete",
+      ↓     invite_token: null (consumed),
+      ↓     invite_token_expires: null,
+      ↓     updated_at: now()
+      ↓   }
+      ↓ Record terms acceptance:
+      ↓   Log audit: "doctor.terms_accepted" with IP + timestamp
+      ↓ Generate auth JWT (24h):
+      ↓   Payload: { userId, email, role: "doctor", tenantId }
+      ↓ Log audit: "doctor.activated"
+      ← Return { token: authJWT, user: {...} }
+
+  [Frontend receives auth JWT]
+      ↓ Store in HTTP-only cookie (via Next.js API route)
+      ↓ Auto-login (no manual credentials needed)
+      ↓ Redirect to /clinical-profile (onboarding mode)
+
+  ---
+  Flow 4: Clinical Profile Completion
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ STEP 4: Doctor Completes Clinical Profile                       │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [Doctor lands on /clinical-profile (onboarding mode)]
+      ↓ Status: 🟡 Incomplete
+      ↓ Sidebar hidden, focused UI
+      ↓ Profile opens in edit mode
+
+  [Doctor completes form]
+      ↓ Personal Data: DOB, gender, address, phone, etc.
+      ↓ Professional Data: CMP, RNE, specialty, location, signature
+
+  [Doctor clicks "Save"]
+      ↓ POST /api/users/clinical-profile
+      ↓ { userId, personalData: {...}, professionalData: {...} }
+      ↓ Authorization: Bearer {doctorJWT}
+
+  [Next.js API Route → Lambda: UpdateClinicalProfileFunction]
+      ↓ Verify doctor JWT
+      ↓ Validate CMP (if profession = Doctor)
+      ↓ Create/Update Doctors_Table_V2 record:
+      ↓   {
+      ↓     doctor_id: UUID,
+      ↓     user_id: userId (FK),
+      ↓     email: user.email,
+      ↓     full_name: user.full_name,
+      ↓     speciality: professionalData.specialty,
+      ↓     id_number: personalData.documentNumber,
+      ↓     phone_number: personalData.phone,
+      ↓     profile_picture_url: personalData.signatureUrl (S3),
+      ↓     active_for_ai_booking: false (not yet validated),
+      ↓     ...
+      ↓   }
+      ↓ Update user status: "incomplete" → "pending"
+      ↓ Log audit: "doctor.profile_completed"
+      ← Return success
+
+  [Doctor sees: Status 🟣 Pending → Awaiting admin validation]
+  [Doctor cannot schedule appointments yet]
+
+  ---
+  Flow 5: Owner Validation
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ STEP 5: Owner Validates Doctor                                  │
+  └─────────────────────────────────────────────────────────────────┘
+
+  [Owner views doctor profile with 🟣 Pending status]
+      ↓ Reviews all professional information
+
+  [Owner clicks "Verify Profile"]
+      ↓ POST /api/users/:userId/validate
+      ↓ Authorization: Bearer {ownerJWT}
+
+  [Next.js API Route → Lambda: ValidateDoctorFunction]
+      ↓ Verify owner JWT + permissions
+      ↓ Update user status: "pending" → "active"
+      ↓ Update Doctors_Table_V2:
+      ↓   { active_for_ai_booking: true }
+      ↓ Create PractitionerRole (FHIR):
+      ↓   Link: User ↔ Specialty ↔ Location
+      ↓ Log audit: "doctor.validated" with owner IP
+      ← Return success
+
+  [Doctor can now receive appointments]
+  [Status changes to: 🟢 Active]
+
+  ---
+  4. FRONTEND COMPONENTS (vitas-client)
+
+  src/app/
+  ├── (auth)/
+  │   ├── register/               # Owner registration
+  │   │   └── page.tsx
+  │   ├── verify-email/           # Email verification
+  │   │   └── page.tsx
+  │   ├── activate/               # Doctor activation
+  │   │   └── page.tsx
+  │   └── signin/                 # Existing login
+  │       └── page.tsx
+  ├── (dashboard)/
+  │   ├── users/                  # User management
+  │   │   ├── page.tsx            # List users
+  │   │   └── [id]/
+  │   │       └── page.tsx        # User detail + validate
+  │   └── clinical-profile/       # Doctor profile completion
+  │       └── page.tsx
+  ├── api/
+  │   ├── auth/
+  │   │   ├── register-owner/
+  │   │   │   └── route.ts
+  │   │   ├── verify-email/
+  │   │   │   └── route.ts
+  │   │   └── signin-owner/
+  │   │       └── route.ts
+  │   └── users/
+  │       ├── invite-doctor/
+  │       │   └── route.ts
+  │       ├── validate-invite-token/
+  │       │   └── route.ts
+  │       ├── accept-invite/
+  │       │   └── route.ts
+  │       ├── clinical-profile/
+  │       │   └── route.ts
+  │       └── [userId]/
+  │           └── validate/
+  │               └── route.ts
+
+  ---
+  5. BACKEND LAMBDA FUNCTIONS (vitas-main-stack)
+
+  vitas-main-stack/
+  └── lambda/
+      └── vitas-auth/
+          └── src/
+              ├── auth/
+              │   ├── register-owner.ts          # POST /auth/register-owner
+              │   ├── verify-email.ts            # GET /auth/verify-email
+              │   ├── signin-owner.ts            # POST /auth/signin-owner
+              │   └── accept-terms.ts            # POST /legal/accept-terms
+              ├── users/
+              │   ├── invite-doctor.ts           # POST /users/invite-doctor
+              │   ├── validate-invite-token.ts   # GET /users/validate-invite-token
+              │   ├── accept-invite.ts           # POST /users/accept-invite
+              │   ├── update-clinical-profile.ts # POST /users/clinical-profile
+              │   └── validate-doctor.ts         # POST /users/:userId/validate
+              └── services/
+                  ├── mailgun.service.ts         # Email sending
+                  ├── jwt.service.ts             # Token generation/validation
+                  └── audit.service.ts           # Audit logging
+
+  ---
+  6. MAILGUN EMAIL TEMPLATES
+
+  Template 1: Owner Email Verification
+
+  Subject: Verifica tu correo - VITAS Clinic
+
+  Hola {fullName},
+
+  Gracias por registrarte en VITAS.
+
+  Por favor, verifica tu correo electrónico haciendo clic en el siguiente enlace:
+
+  [Verificar Email] → {FRONTEND_URL}/verify-email?token={verificationToken}
+
+  Este enlace expira en 24 horas.
+
+  ---
+  VITAS Clinic Team
+
+  Template 2: Doctor Invitation
+
+  Subject: Invitación a VITAS - {ClinicName}
+
+  Hola, Dr. {fullName},
+
+  Has sido invitado por {clinicName} para unirte a VITAS como profesional médico.
+
+  Para activar tu cuenta, haz clic en el siguiente enlace:
+
+  [Activar Cuenta] → {FRONTEND_URL}/activate?token={inviteToken}
+
+  Importante:
+  • Este enlace expira en 24 horas
+  • No compartas este correo o enlace con nadie
+  • Al activar, deberás crear una contraseña segura
+
+  Por seguridad, este mensaje cumple con la Ley 29733 de Protección de Datos Personales.
+
+  ---
+  VITAS Clinic Team
+
+  ---
+  7. KEY SECURITY FEATURES
+
+  // Password hashing (Argon2id)
+  import argon2 from 'argon2';
+
+  async function hashPassword(password: string): Promise<string> {
+    return argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 4
+    });
+  }
+
+  // JWT generation (24h expiry)
+  import * as jose from 'jose';
+
+  async function generateInviteToken(userId: string, email: string, tenantId: string) {
+    return await new jose.SignJWT({
+      userId,
+      email,
+      role: 'doctor',
+      tenantId,
+      type: 'invite'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('24h')
+      .setIssuedAt()
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET));
+  }
+
+  // Audit logging
+  async function logAudit(params: {
+    userId: string;
+    tenantId: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    ipAddress: string;
+    metadata?: any;
+  }) {
+    await dynamodb.put({
+      TableName: 'Audit_Logs_Table',
+      Item: {
+        log_id: uuidv4(),
+        timestamp: new Date().toISOString(),
+        ...params
+      }
+    }).promise();
+  }
+
+  ---
+  📊 SUMMARY
+
+  What This Architecture Implements:
+  - ✅ Complete user management system (owner + doctor)
+  - ✅ Secure invitation flow with single-use tokens
+  - ✅ Email verification and activation
+  - ✅ Password security (Argon2id)
+  - ✅ Audit trail for all state changes
+  - ✅ Multi-tenant support (clinic/IPRESS)
+  - ✅ Integration with existing Doctors_Table_V2
+  - ✅ Follows existing authentication patterns
+  - ✅ Mailgun email service integration
+
+  What Gets Created:
+  - 3 new DynamoDB tables (Users, Tenants, Audit_Logs)
+  - 9 new Lambda functions (auth + user management)
+  - 8 new API endpoints
+  - 5 new frontend pages/components
+  - 2 email templates (Mailgun)
+
+  ---
+  Does this architecture align with your vision? Any changes or additional features you'd like to add before I create the implementation plan?
