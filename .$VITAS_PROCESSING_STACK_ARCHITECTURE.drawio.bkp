@@ -1,0 +1,404 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" version="24.0.0">
+  <diagram id="VitasProcessingArch" name="VITAS Processing Stack - Audio Processing Pipeline">
+    <mxGraphModel dx="3500" dy="2800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2800" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title-line" value="" style="line;strokeWidth=3;html=1;fontSize=14;shadow=0;sketch=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="2600" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="title-text" value="VITAS Processing Stack - Medical Audio Processing Pipeline (AWS CDK)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=32;fontColor=#000000;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="1400" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Cloud Container -->
+        <mxCell id="aws-cloud" value="AWS Cloud - sa-east-1" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=18;fontStyle=1;container=1;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="2600" height="1850" as="geometry" />
+        </mxCell>
+
+        <!-- ========== S3 STORAGE LAYER ========== -->
+        <mxCell id="s3-layer" value="S3 STORAGE LAYER - Media Processing Bucket" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="60" y="60" width="1400" height="450" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-bucket" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="120" y="130" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-bucket-label" value="S3 Bucket&#xa;&#xa;vitas-media-processing-v2" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="100" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-folder1" value="audios&#xa;&#xa;doctor-id/&#xa;patient-id/&#xa;audio.mp3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="340" y="130" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-folder2" value="transcripts&#xa;&#xa;doctor-id/&#xa;patient-id/&#xa;transcript.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="580" y="130" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-folder3" value="soap-reports&#xa;&#xa;doctor-id/&#xa;patient-id/&#xa;soap.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="820" y="130" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-folder4" value="icd-diagnosis&#xa;&#xa;doctor-id/&#xa;patient-id/&#xa;icd.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1060" y="130" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-event1" value="S3 Event Trigger 1&#xa;&#xa;Prefix: audios/&#xa;Event: ObjectCreated&#xa;Target: Step Functions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="340" y="280" width="180" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-event2" value="S3 Event Trigger 2&#xa;&#xa;Prefix: transcripts/&#xa;Event: ObjectCreated&#xa;Target: Express Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;spacingTop=8;spacingLeft=10;align=left;verticalAlign=top;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="580" y="280" width="180" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-note" value="Lifecycle Policy&#xa;&#xa;• Retain for 90 days&#xa;• Transition to Glacier after 30 days&#xa;• Delete after 365 days&#xa;• Versioning disabled for cost" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;spacingTop=8;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="820" y="280" width="420" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ========== STEP FUNCTIONS WORKFLOWS LAYER ========== -->
+        <mxCell id="workflow-layer" value="STEP FUNCTIONS WORKFLOWS - Orchestration Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="60" y="570" width="1400" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-trigger" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="140" y="650" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="workflow-trigger-label" value="Workflow Trigger&#xa;&#xa;256MB / 1min" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="110" y="740" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step-standard" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.step_functions;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="470" y="650" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step-standard-label" value="STANDARD Workflow&#xa;&#xa;Transcription Pipeline&#xa;20min timeout" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="430" y="740" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step-express" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.step_functions;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="870" y="650" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step-express-label" value="EXPRESS Workflow&#xa;&#xa;Analysis Pipeline&#xa;5min timeout" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="830" y="740" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="standard-details" value="Standard Workflow Steps&#xa;&#xa;1. Transcription Lambda&#xa;2. Retry 3x (30s, 60s, 120s)&#xa;3. Fallback: AWS Transcribe&#xa;4. Write transcript to S3&#xa;5. On Success: Trigger Express&#xa;6. On Failure: DLQ + SNS" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="340" y="860" width="250" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="express-details" value="Express Workflow Steps&#xa;&#xa;1. Parallel: SOAP + ICD&#xa;2. Retry 3x per Lambda&#xa;3. Fallback: Anthropic Claude&#xa;4. Write results to S3&#xa;5. Save S3 object keys to DynamoDB&#xa;6. On Failure: DLQ + SNS" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="740" y="860" width="250" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-note" value="Auto-trigger Rules&#xa;&#xa;• Audio upload → Standard Workflow&#xa;• Transcript upload → Express Workflow&#xa;• Standard success → Express Workflow&#xa;• Both webhooks POST to frontend" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1060" y="650" width="340" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ========== LAMBDA FUNCTIONS LAYER ========== -->
+        <mxCell id="lambda-layer" value="LAMBDA FUNCTIONS - Processing Layer (7 Functions - Node.js 20.x ARM64)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="60" y="1120" width="2200" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="transcription-lambda" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="140" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="transcription-label" value="Transcription&#xa;&#xa;1024MB / 15min&#xa;OpenAI Whisper&#xa;AWS Transcribe" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="110" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="soap-lambda" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="380" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="soap-label" value="SOAP Report&#xa;&#xa;512MB / 5min&#xa;GPT-4o&#xa;Claude Sonnet" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="350" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="icd-lambda" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="620" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="icd-label" value="ICD Diagnosis&#xa;&#xa;512MB / 5min&#xa;GPT-4o&#xa;Claude Sonnet" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="590" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="success-lambda" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="860" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="success-label" value="Success Notify&#xa;&#xa;256MB / 1min&#xa;POST Webhook&#xa;to Frontend" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="830" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="failure-lambda" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1100" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="failure-label" value="Failure Notify&#xa;&#xa;256MB / 1min&#xa;POST Webhook&#xa;Error Details" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1070" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq-processor" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;gradientColor=#F78E04;gradientDirection=north;fillColor=#D05C17;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1340" y="1200" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dlq-processor-label" value="DLQ Processor&#xa;&#xa;512MB / 15min&#xa;Retry Failed Jobs&#xa;Every 2 hours" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1310" y="1280" width="130" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq-note" value="Dead Letter Queue Processing&#xa;&#xa;• 3 DLQs (transcription, soap, icd)&#xa;• 14-day message retention&#xa;• 12 retry attempts over 24 hours&#xa;• SNS email notification if unresolved&#xa;• EventBridge triggers every 2 hours" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1580" y="1200" width="600" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ========== ERROR HANDLING - DLQ LAYER ========== -->
+        <mxCell id="dlq-layer" value="ERROR HANDLING - Dead Letter Queues and Retry Mechanism" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1540" y="60" width="1000" height="450" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq1" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1640" y="140" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dlq1-label" value="Transcription DLQ&#xa;&#xa;14-day retention" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1610" y="220" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq2" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1880" y="140" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dlq2-label" value="SOAP Report DLQ&#xa;&#xa;14-day retention" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1850" y="220" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq3" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2120" y="140" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="dlq3-label" value="ICD Diagnosis DLQ&#xa;&#xa;14-day retention" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2090" y="220" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eventbridge" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1760" y="340" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="eventbridge-label" value="EventBridge Rule&#xa;&#xa;Scheduled&#xa;cron: every 2h" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1725" y="420" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sns-topic" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2060" y="340" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sns-label" value="SNS Topic&#xa;&#xa;Error Email&#xa;Notifications" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2030" y="420" width="130" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="retry-note" value="24-Hour SLA Guarantee&#xa;&#xa;• Immediate retry: 3x with exponential backoff&#xa;• After 10 minutes: SNS email alert&#xa;• Frontend polling stops after 10 min&#xa;• EventBridge retries every 2 hours&#xa;• 12 total retry attempts over 24 hours&#xa;• Final failure: email notification" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2300" y="140" width="180" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- ========== DATABASE LAYER ========== -->
+        <mxCell id="database-layer" value="DATABASE LAYER - DynamoDB Tables" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1540" y="570" width="1000" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="appointments-table" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1720" y="660" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="appointments-label" value="Appointments V2&#xa;&#xa;Stores S3 object keys&#xa;for SOAP and ICD" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1670" y="740" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="diagnosis-table" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2100" y="660" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="diagnosis-label" value="Diagnosis V2&#xa;&#xa;ICD-10 codes&#xa;S3 object keys" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="2050" y="740" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db-note" value="Data Storage Pattern&#xa;&#xa;1. Processing Lambda writes full JSON to S3&#xa;2. Lambda saves S3 object key to DynamoDB&#xa;3. Frontend requests object key from DynamoDB&#xa;4. Frontend fetches full JSON from S3 using key&#xa;5. Same pattern for SOAP reports and ICD diagnosis&#xa;&#xa;Example S3 key:&#xa;soap-reports/doctor-123/patient-456/appt-789.json&#xa;&#xa;Benefits:&#xa;• Cost efficient (DynamoDB only stores keys)&#xa;• No 400KB item size limit&#xa;• S3 provides automatic lifecycle management" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1640" y="860" width="820" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ========== EXTERNAL INTEGRATIONS ========== -->
+        <mxCell id="external-layer" value="EXTERNAL INTEGRATIONS AND MONITORING" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=16;fontStyle=1;spacingTop=15;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="60" y="1480" width="2480" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="openai" value="OpenAI API&#xa;&#xa;Whisper&#xa;GPT-4o" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#1ba1e2;fontColor=#ffffff;strokeColor=#006EAF;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="180" y="1570" width="120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic" value="Anthropic&#xa;&#xa;Claude 3&#xa;Sonnet" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#a0522d;fontColor=#ffffff;strokeColor=#6F4A2F;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="380" y="1570" width="120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-transcribe" value="AWS&#xa;Transcribe&#xa;&#xa;Fallback STT" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FF9900;fontColor=#ffffff;strokeColor=#CC7700;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="580" y="1570" width="120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend-webhook" value="Vitas Client&#xa;&#xa;Webhook&#xa;POST" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="780" y="1570" width="120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vercel-deploy" value="Vercel&#xa;&#xa;Protection&#xa;Bypass" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;fontColor=#ffffff;strokeColor=#333333;fontSize=12;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="980" y="1570" width="120" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssm-params" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.systems_manager;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1225" y="1595" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ssm-label" value="Systems Manager&#xa;&#xa;Parameter Store&#xa;API Keys and Secrets" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1180" y="1675" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloudwatch" value="" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1465" y="1595" width="70" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch-label" value="CloudWatch&#xa;&#xa;Logs, Metrics&#xa;Alarms, Dashboard" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1420" y="1675" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="integration-note" value="API Keys Stored in Systems Manager Parameter Store&#xa;&#xa;• openai-api-key (GPT-4o and Whisper)&#xa;• anthropic-api-key (Claude Sonnet fallback)&#xa;• webhook-url (POST callback to frontend)&#xa;• vercel-bypass-secret (Vercel protection)&#xa;• soap-report-prompt (System prompt template)&#xa;• icd-diagnosis-prompt (Diagnosis template)&#xa;&#xa;All secrets encrypted at rest with AWS KMS" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;spacingTop=10;spacingLeft=12;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1700" y="1540" width="720" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ========== CONNECTIONS ========== -->
+        <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#FF6600;" edge="1" parent="aws-cloud" source="s3-event1" target="workflow-trigger">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="450" />
+              <mxPoint x="180" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="aws-cloud" source="workflow-trigger" target="step-standard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="620" />
+              <mxPoint x="510" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#00CC00;" edge="1" parent="aws-cloud" source="s3-event2" target="step-express">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="450" />
+              <mxPoint x="910" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#9933FF;" edge="1" parent="aws-cloud" source="step-standard" target="transcription-lambda">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="1090" />
+              <mxPoint x="175" y="1090" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#CC0000;" edge="1" parent="aws-cloud" source="step-express" target="soap-lambda">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="1090" />
+              <mxPoint x="415" y="1090" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#CC0000;" edge="1" parent="aws-cloud" source="step-express" target="icd-lambda">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="910" y="1090" />
+              <mxPoint x="655" y="1090" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF0000;dashed=1;" edge="1" parent="aws-cloud" source="transcription-lambda" target="dlq1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="1235" />
+              <mxPoint x="1500" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF0000;dashed=1;" edge="1" parent="aws-cloud" source="soap-lambda" target="dlq2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="1235" />
+              <mxPoint x="1500" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF0000;dashed=1;" edge="1" parent="aws-cloud" source="icd-lambda" target="dlq3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="1235" />
+              <mxPoint x="1500" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#9900CC;" edge="1" parent="aws-cloud" source="eventbridge" target="dlq-processor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1795" y="550" />
+              <mxPoint x="1375" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#00AA00;dashed=1;" edge="1" parent="aws-cloud" source="soap-lambda" target="appointments-table">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="415" y="1440" />
+              <mxPoint x="1755" y="1440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#00AA00;dashed=1;" edge="1" parent="aws-cloud" source="icd-lambda" target="diagnosis-table">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="655" y="1440" />
+              <mxPoint x="2135" y="1440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;dashed=1;" edge="1" parent="aws-cloud" source="success-lambda" target="frontend-webhook">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="895" y="1460" />
+              <mxPoint x="840" y="1460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ========== FLOW MARKERS ========== -->
+        <mxCell id="marker1" value="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="420" y="440" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="marker2" value="2" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="300" y="1080" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="marker3" value="3" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="1560" y="160" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="marker4" value="4" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="aws-cloud">
+          <mxGeometry x="540" y="1430" width="30" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ========== LEGEND AND SUMMARY ========== -->
+        <mxCell id="legend" value="STACK SUMMARY&#xa;&#xa;Lambda Functions: 7&#xa;• Workflow Trigger (256MB)&#xa;• Transcription (1024MB)&#xa;• SOAP Report (512MB)&#xa;• ICD Diagnosis (512MB)&#xa;• Success Notify (256MB)&#xa;• Failure Notify (256MB)&#xa;• DLQ Processor (512MB)&#xa;&#xa;Step Functions: 2&#xa;• Standard (Transcription)&#xa;• Express (Analysis)&#xa;&#xa;Queues: 3 SQS DLQs&#xa;S3 Buckets: 1 (4 folders)&#xa;DynamoDB: 2 tables&#xa;EventBridge: 1 rule&#xa;SNS: 1 topic&#xa;&#xa;Cost: 50-150 USD/month&#xa;Processing: 20-70 min avg" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=12;spacingLeft=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="2720" y="120" width="380" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-summary" value="PROCESSING FLOW&#xa;&#xa;1. Audio Upload → S3&#xa;2. S3 Event → Trigger Lambda&#xa;3. Standard Workflow Start&#xa;4. Transcription (OpenAI Whisper)&#xa;5. Fallback: AWS Transcribe&#xa;6. Write transcript to S3&#xa;7. Trigger Express Workflow&#xa;8. Parallel: SOAP + ICD&#xa;9. Write results to S3&#xa;10. Save S3 keys to DynamoDB&#xa;11. Webhook POST to Frontend&#xa;12. Frontend polls 10s (10min max)&#xa;&#xa;On Error:&#xa;• Send to DLQ (14-day retention)&#xa;• Retry every 2 hours (EventBridge)&#xa;• SNS email alert after 10 minutes&#xa;• 12 retry attempts over 24 hours&#xa;• 24-hour SLA guarantee&#xa;• Email on final failure" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=12;spacingLeft=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="2720" y="700" width="380" height="560" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
